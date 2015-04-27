@@ -532,11 +532,12 @@ class processNBI(object):
         created by createnbi()"""
 
     # Don't think we need this.
-    def __init__(self, customfolder = None, enablepython=False, enableruby=False):
+    def __init__(self, customfolder = None, enablepython=False, enableruby=False, utilplist=False):
          super(processNBI, self).__init__()
          self.customfolder = customfolder
          self.enablepython = enablepython
          self.enableruby = enableruby
+         self.utilplist = utilplist
          self.hdiutil = '/usr/bin/hdiutil'
 
 
@@ -829,6 +830,16 @@ class processNBI(object):
                 if os.path.exists(cpio_archive):
                     os.remove(cpio_archive)
 
+            # Add custom Utilities.plist if passed as an argument
+            if self.utilplist:
+                print("-------------------------------------------------------------------------")
+                print("Adding custom Utilities.plist from %s" % self.utilplist)
+                try:
+                    shutil.copyfile(os.path.abspath(self.utilplist), os.path.join(basesystemmountpoint +
+                                    '/System/Installation/CDIS/OS X Utilities.app/Contents/Resources/Utilities.plist'))
+                except:
+                    print("Failed to add custom Utilites plist from %s" % self.utilplist)
+
             # Done adding frameworks to BaseSystem, unmount and convert
             detachresult = self.runcmd(self.dmgdetach(basesystemmountpoint))
             basesystemnew = os.path.join(TMPDIR, 'BaseSystemNew.dmg')
@@ -910,6 +921,8 @@ def main():
                       help='Optional. Enables Ruby in BaseSystem.', dest='addruby')
     parser.add_option('--add-python', '-p', action='store_true', default=False,
                       help='Optional. Enables Python in BaseSystem.', dest='addpython')
+    parser.add_option('--utilities-plist', default=False,
+                      help='Optional. Add a custom Utilities.plist to modify the menu.', dest='utilplist')
 
     # Parse the provided options
     options, arguments = parser.parse_args()
@@ -930,6 +943,7 @@ def main():
     addpython = options.addpython
     addruby = options.addruby
     name = options.name
+    utilplist = options.utilplist
 
     # Set 'modifydmg' if any of 'addcustom', 'addpython' or 'addruby' are set
     addcustom = len(customfolder) > 0
@@ -1003,7 +1017,7 @@ def main():
         netinstallpath = os.path.join(destination, name + '.nbi', 'NetInstall.dmg')
 
         # Initialize a new processNBI() instance as 'nbi'
-        nbi = processNBI(customfolder, addpython, addruby)
+        nbi = processNBI(customfolder, addpython, addruby, utilplist)
 
         # Run makerw() to enable modifications
         nbimount, nbishadow = nbi.makerw(netinstallpath)
